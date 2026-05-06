@@ -1,0 +1,6 @@
+dist/
+acrcli
+acr-cli
+.gocache/
+.gomodcache/
+*.test

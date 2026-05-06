@@ -1,0 +1,78 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: acr-cli
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: acrcli
+    main: .
+    binary: acrcli
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+archives:
+  - id: acrcli
+    ids:
+      - acrcli
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+release:
+  github:
+    owner: alexcamposruiz
+    name: acr-cli
+
+brews:
+  - name: acr-cli
+    ids:
+      - acrcli
+    repository:
+      owner: alexcamposruiz
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: goreleaserbot@users.noreply.github.com
+    directory: Formula
+    homepage: https://github.com/alexcamposruiz/acr-cli
+    description: Small release-ready Go CLI
+    license: MIT
+    test: |
+      system "#{bin}/acrcli", "doctor"
