@@ -143,7 +143,7 @@ verify_checksum "$tmpdir/checksums.txt" "$tmpdir/$archive" "$archive"
 tar -xzf "$tmpdir/$archive" -C "$tmpdir" "$BINARY"
 
 ensure_install_dir
-if ! mv "$tmpdir/$BINARY" "$INSTALL_DIR/$BINARY"; then
+if ! mv "$tmpdir/$BINARY" "$INSTALL_DIR/$BINARY" 2>/dev/null; then
   print_install_dir_help
   exit 1
 fi
