@@ -15,6 +15,8 @@ or:
 curl -fsSL https://raw.githubusercontent.com/alexcamposruiz/acr-cli/main/scripts/install.sh | sh
 ```
 
+The installer verifies the downloaded release archive against the published `checksums.txt` before installing.
+
 ## Use
 
 ```sh

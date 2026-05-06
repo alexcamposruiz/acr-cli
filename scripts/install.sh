@@ -36,6 +36,34 @@ detect_arch() {
   esac
 }
 
+verify_checksum() {
+  checksums="$1"
+  archive_path="$2"
+  archive_name="$3"
+
+  expected="$(awk -v archive="$archive_name" '$2 == archive {print $1; exit}' "$checksums")"
+  if [ -z "$expected" ]; then
+    echo "checksum not found for $archive_name" >&2
+    exit 1
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual="$(sha256sum "$archive_path" | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    actual="$(shasum -a 256 "$archive_path" | awk '{print $1}')"
+  else
+    echo "missing required command: sha256sum or shasum" >&2
+    exit 1
+  fi
+
+  if [ "$actual" != "$expected" ]; then
+    echo "checksum mismatch for $archive_name" >&2
+    echo "expected: $expected" >&2
+    echo "actual:   $actual" >&2
+    exit 1
+  fi
+}
+
 resolve_version() {
   if [ "$VERSION" != "latest" ]; then
     echo "$VERSION"
@@ -49,12 +77,14 @@ resolve_version() {
 need curl
 need tar
 need sed
+need awk
 
 os="$(detect_os)"
 arch="$(detect_arch)"
 tag="$(resolve_version)"
 archive="${REPO}_${os}_${arch}.tar.gz"
 url="https://github.com/${OWNER}/${REPO}/releases/download/${tag}/${archive}"
+checksums_url="https://github.com/${OWNER}/${REPO}/releases/download/${tag}/checksums.txt"
 tmpdir="$(mktemp -d)"
 
 cleanup() {
@@ -63,6 +93,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 curl -fsSL "$url" -o "$tmpdir/$archive"
+curl -fsSL "$checksums_url" -o "$tmpdir/checksums.txt"
+verify_checksum "$tmpdir/checksums.txt" "$tmpdir/$archive" "$archive"
 tar -xzf "$tmpdir/$archive" -C "$tmpdir" "$BINARY"
 
 mkdir -p "$INSTALL_DIR"
