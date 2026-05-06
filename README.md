@@ -17,6 +17,12 @@ curl -fsSL https://raw.githubusercontent.com/alexcamposruiz/acr-cli/main/scripts
 
 The installer verifies the downloaded release archive against the published `checksums.txt` before installing.
 
+To install without writing to `/usr/local/bin`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/alexcamposruiz/acr-cli/main/scripts/install.sh | env INSTALL_DIR="$HOME/.local/bin" sh
+```
+
 ## Use
 
 ```sh

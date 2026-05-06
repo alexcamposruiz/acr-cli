@@ -64,6 +64,51 @@ verify_checksum() {
   fi
 }
 
+path_contains() {
+  case ":$PATH:" in
+    *":$1:"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+print_install_dir_help() {
+  cat >&2 <<EOF
+Cannot write to $INSTALL_DIR.
+
+Try one of these:
+  curl -fsSL https://raw.githubusercontent.com/${OWNER}/${REPO}/main/scripts/install.sh | sudo sh
+  curl -fsSL https://raw.githubusercontent.com/${OWNER}/${REPO}/main/scripts/install.sh | env INSTALL_DIR="\$HOME/.local/bin" sh
+
+If you use INSTALL_DIR="\$HOME/.local/bin", add this to your shell profile:
+  export PATH="\$HOME/.local/bin:\$PATH"
+EOF
+}
+
+ensure_install_dir() {
+  if ! mkdir -p "$INSTALL_DIR" 2>/dev/null; then
+    print_install_dir_help
+    exit 1
+  fi
+
+  if [ ! -w "$INSTALL_DIR" ]; then
+    print_install_dir_help
+    exit 1
+  fi
+}
+
+print_path_help() {
+  if path_contains "$INSTALL_DIR"; then
+    return
+  fi
+
+  cat <<EOF
+
+$INSTALL_DIR is not on your PATH.
+Add this to your shell profile:
+  export PATH="$INSTALL_DIR:\$PATH"
+EOF
+}
+
 resolve_version() {
   if [ "$VERSION" != "latest" ]; then
     echo "$VERSION"
@@ -97,8 +142,12 @@ curl -fsSL "$checksums_url" -o "$tmpdir/checksums.txt"
 verify_checksum "$tmpdir/checksums.txt" "$tmpdir/$archive" "$archive"
 tar -xzf "$tmpdir/$archive" -C "$tmpdir" "$BINARY"
 
-mkdir -p "$INSTALL_DIR"
-mv "$tmpdir/$BINARY" "$INSTALL_DIR/$BINARY"
+ensure_install_dir
+if ! mv "$tmpdir/$BINARY" "$INSTALL_DIR/$BINARY"; then
+  print_install_dir_help
+  exit 1
+fi
 chmod 0755 "$INSTALL_DIR/$BINARY"
 
 echo "installed $BINARY $tag to $INSTALL_DIR/$BINARY"
+print_path_help
